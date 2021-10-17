@@ -18,6 +18,8 @@ def get_proportions_and_counts(dataframe, taxon, results_label = None):
     -----------
     results : pandas DataFrame with the original index, a column of proportions, and a column of counts"""
     
+    #copy the df, otherwise the changes will be passed to the original
+    dataframe = dataframe.copy()
     #if results_label not passed, default to taxon name
     if results_label == None:
         results_label = taxon
@@ -102,24 +104,23 @@ def load_tbp(fp, directory, level):
 
     qzv = Visualization.load(fp)
     qzv.export_data(directory)
-    csv_name = 'level-' + str(level)
+    csv_name = 'level-' + str(level) + '.csv'
     qzv_df = pd.read_csv(os.path.join(directory, csv_name))
 
 
     return qzv_df
 
+def main_function():
+    """run script"""
 
-
-if __name__ == '__main__':
-
-    #put all of this into main function, then call that function
-    working_dir = '/gscratch/zaneveld/sonettd/organelle_removal'
+    working_dir = '/mnt/c/Users/dsone/Documents/zaneveld'
     studies = ['GCMP', 'GSMP', 'human_gut', 'milk', 'peru_ants']
     denoisers = ['dada2', 'deblur']
     classifiers = ['vsearch', 'nb']
     references = ['silva', 'silva_extended', 'gg', 'gg_extended']
 
     with tempfile.TemporaryDirectory() as temp_dir:
+        results = pd.DataFrame().rename_axis('#SampleID')
         for study in studies:
             study_results = pd.DataFrame().rename_axis('#SampleID')
             for denoiser in denoisers:
@@ -132,15 +133,15 @@ if __name__ == '__main__':
                         unassigned_results = get_proportions_and_counts(df, 'Unassigned', 'unassigned')
                         #there are several differences between silva and greengenes - taxonomic level of chloroplasts (4 vs 3) and specific lineages of both chloroplasts and mitochondria
                         if 'silva' in reference:
-                            df = load_tbp(fp, 4)
+                            df = load_tbp(fp, temp_dir, 4)
                             cp_name = 'd__Bacteria;p__Cyanobacteria;c__Cyanobacteriia;o__Chloroplast'
                             mc_name = 'd__Bacteria;p__Proteobacteria;c__Alphaproteobacteria;o__Rickettsiales;f__Mitochondria'
                         else:
-                            df = load_tbp(fp, 3)
+                            df = load_tbp(fp, temp_dir, 3)
                             cp_name = 'k__Bacteria;p__Cyanobacteria;c__Chloroplast'
                             mc_name = 'k__Bacteria;p__Proteobacteria;c__Alphaproteobacteria;o__Rickettsiales;f__mitochondria'
                         chloroplast_results = get_proportions_and_counts(df, cp_name, 'chloroplasts')
-                        df = load_tbp(fp, 5)
+                        df = load_tbp(fp, temp_dir, 5)
                         mitochondria_results = get_proportions_and_counts(df, mc_name, 'mitochondria')
                         reference_results = unassigned_results.merge(chloroplast_results, left_index = True, right_index = True, validate = '1:1')
                         reference_results = reference_results.merge(mitochondria_results, left_index = True, right_index = True, validate = '1:1')
@@ -152,4 +153,9 @@ if __name__ == '__main__':
                 study_results = study_results.append(denoiser_results)
             study_results['study'] = study
             results = results.append(study_results)
+        results.to_csv(working_dir + '/output/proportions.csv')
 
+
+
+if __name__ == '__main__':
+    main_function()
