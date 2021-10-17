@@ -67,11 +67,11 @@ class TestProportionsAndCounts(unittest.TestCase):
                                                             'k__Bacteria;p__Proteobacteria;c__Alphaproteobacteria;o__Rickettsiales;f__mitochondria',
                                                             'mitochondria')
 
-        self.assert_df_equal(unassigned_expected, unassigned_actual, 'unassigned')
-        self.assert_df_equal(chloroplasts_expected, silva_chloroplasts_actual, 'silva chloroplasts')
-        self.assert_df_equal(chloroplasts_expected, gg_chloroplasts_actual, 'gg chloroplasts')
-        self.assert_df_equal(mitochondria_expected, silva_mitochondria_actual, 'silva mitochondria')
-        self.assert_df_equal(mitochondria_expected, gg_mitochondria_actual, 'gg mitochondria')
+        self.assertEqual(unassigned_expected, unassigned_actual, 'unassigned')
+        self.assertEqual(chloroplasts_expected, silva_chloroplasts_actual, 'silva chloroplasts')
+        self.assertEqual(chloroplasts_expected, gg_chloroplasts_actual, 'gg chloroplasts')
+        self.assertEqual(mitochondria_expected, silva_mitochondria_actual, 'silva mitochondria')
+        self.assertEqual(mitochondria_expected, gg_mitochondria_actual, 'gg mitochondria')
 
     def test_missing_columns(self):
         """Test that when taxon columns are absent, counts and proportions appropriately
@@ -123,11 +123,11 @@ class TestProportionsAndCounts(unittest.TestCase):
                                                                'k__Bacteria;p__Proteobacteria;c__Alphaproteobacteria;o__Rickettsiales;f__mitochondria',
                                                                'mitochondria')
 
-        self.assert_df_equal(unassigned_expected, unassigned_actual, 'unassigned')
-        self.assert_df_equal(chloroplasts_expected, silva_chloroplasts_actual, 'silva chloroplasts')
-        self.assert_df_equal(chloroplasts_expected, gg_chloroplasts_actual, 'gg chloroplasts')
-        self.assert_df_equal(mitochondria_expected, silva_mitochondria_actual, 'silva mitochondria')
-        self.assert_df_equal(mitochondria_expected, gg_mitochondria_actual, 'gg mitochondria')
+        self.assertEqual(unassigned_expected, unassigned_actual, 'unassigned')
+        self.assertEqual(chloroplasts_expected, silva_chloroplasts_actual, 'silva chloroplasts')
+        self.assertEqual(chloroplasts_expected, gg_chloroplasts_actual, 'gg chloroplasts')
+        self.assertEqual(mitochondria_expected, silva_mitochondria_actual, 'silva mitochondria')
+        self.assertEqual(mitochondria_expected, gg_mitochondria_actual, 'gg mitochondria')
         
     def test_zero_count(self):
         """Test whether samples with zero of the specified taxa appropriately
@@ -183,11 +183,11 @@ class TestProportionsAndCounts(unittest.TestCase):
                                                                'k__Bacteria;p__Proteobacteria;c__Alphaproteobacteria;o__Rickettsiales;f__mitochondria',
                                                                'mitochondria')
 
-        self.assert_df_equal(unassigned_expected, unassigned_actual, 'unassigned')
-        self.assert_df_equal(chloroplasts_expected, silva_chloroplasts_actual, 'silva chloroplasts')
-        self.assert_df_equal(chloroplasts_expected, gg_chloroplasts_actual, 'gg chloroplasts')
-        self.assert_df_equal(mitochondria_expected, silva_mitochondria_actual, 'silva mitochondria')
-        self.assert_df_equal(mitochondria_expected, gg_mitochondria_actual, 'gg mitochondria')
+        self.assertEqual(unassigned_expected, unassigned_actual, 'unassigned')
+        self.assertEqual(chloroplasts_expected, silva_chloroplasts_actual, 'silva chloroplasts')
+        self.assertEqual(chloroplasts_expected, gg_chloroplasts_actual, 'gg chloroplasts')
+        self.assertEqual(mitochondria_expected, silva_mitochondria_actual, 'silva mitochondria')
+        self.assertEqual(mitochondria_expected, gg_mitochondria_actual, 'gg mitochondria')
 
 #needed? empty samples probably shouldn't be included in the data. but we're
 #running this before filtering for things like that, right? so it might be worth?
