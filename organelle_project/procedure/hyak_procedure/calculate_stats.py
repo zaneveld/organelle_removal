@@ -1,12 +1,5 @@
 import os
 import pandas as pd
-import seaborn as sns
-import tempfile
-from qiime2 import Artifact
-from qiime2.metadata import Metadata
-from qiime2.plugins.feature_classifier.methods import classify_consensus_vsearch
-from qiime2.plugins.taxa.visualizers import barplot
-from qiime2 import Visualization
 from scipy import stats
 
 
@@ -19,9 +12,9 @@ methods = ['dada2', 'deblur']
 denoisers = ['dada2', 'deblur']
 classifiers = ['vsearch', 'nb']
 
-statistics = []
 stats_df = pd.DataFrame(columns = ['denoiser', 'classifier', 'level', 'base reference', 'extended/base counts', 'H', 'p', 'study'])
 for study in studies:
+    statistics = []
     df = pd.read_csv((working_dir + '/output/' + study + '_proportions.csv'), index_col = 0)
     for denoiser in denoisers:
         for level in ['unassigned', 'chloroplasts', 'mitochondria']:
@@ -32,7 +25,7 @@ for study in studies:
                     if not base_absolute == 0:
                         fold_delta = extended_absolute / base_absolute
                     else:
-                        folde_delta = 'NaN'
+                        fold_delta = 'NaN'
                     base_proportion = df['proportion ' + level][(df['reference taxonomy'] == base_reference) & (df['denoise method'] == denoiser)]
                     extended_proportion = df['proportion ' + level][(df['denoise method'] == denoiser) & (df['reference taxonomy'] == (base_reference + '_extended'))]
                     try:

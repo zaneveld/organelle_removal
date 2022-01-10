@@ -105,7 +105,7 @@ def load_tbp(fp, directory, level):
     qzv = Visualization.load(fp)
     qzv.export_data(directory)
     csv_name = 'level-' + str(level) + '.csv'
-    qzv_df = pd.read_csv(os.path.join(directory, csv_name))
+    qzv_df = pd.read_csv(os.path.join(directory, csv_name), index_col = 'index')
 
 
     return qzv_df
@@ -113,8 +113,8 @@ def load_tbp(fp, directory, level):
 def main_function():
     """run script"""
 
-    working_dir = '/mnt/c/Users/dsone/Documents/zaneveld'
-    studies = ['GCMP', 'GSMP', 'human_gut', 'milk', 'peru_ants']
+    working_dir = '/gscratch/zaneveld/sonettd/organelle_removal'
+    studies = ['GCMP', 'GSMP', 'human_gut', 'milk', 'peru_ants', 'mocks']
     denoisers = ['dada2', 'deblur']
     classifiers = ['vsearch', 'nb']
     references = ['silva', 'silva_extended', 'gg', 'gg_extended']
