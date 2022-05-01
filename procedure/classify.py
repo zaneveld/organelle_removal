@@ -23,4 +23,4 @@ for study in studies:
                 classification_taxonomy.save(join(working_dir, 'output', study + denoiser + filter + reference + 'vsearch_classification_taxonomy.qza'))
                 classifier = Artifact.load(join(working_dir, 'taxonomy_references', reference + 'nb_classifier.qza'))
                 nb_classification_taxonomy, = classify_sklearn(seqs, classifier, n_jobs = 30)
-                nb_classification_taxonomy.save(join(working_dir, 'output', study + denoiser + filter + reference + 'nb_classification_taxonomy.qza')
+                nb_classification_taxonomy.save(join(working_dir, 'output', study + denoiser + filter + reference + 'nb_classification_taxonomy.qza'))

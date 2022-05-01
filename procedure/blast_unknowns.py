@@ -55,5 +55,10 @@ with open(join(working_dir, 'output', 'GCMP_top_unknown_seqs.fasta'), 'w') as fi
     for i, seq in enumerate(top_seqs):
         file.write('>' + str(i) + '\n' + seq + '\n')
 #export BLASTDB=/gscratch/zaneveld/BLAST/blastdb
-blast_params = ['/gscratch/zaneveld/BLAST/ncbi-blast-2.13.0+/bin/blastn', '-db', 'nt', '-query', join(working_dir, 'output', 'GCMP_top_unknown_seqs.fasta'), '-num_threads', '10', '-max_target_seqs', '5', '-outfmt', '6 qseqid sseqid staxids stitle evalue bitscore', '-out', join(working_dir, 'output', 'GCMP_top_unknowns.blast')]
+blast_params = ['/gscratch/zaneveld/BLAST/ncbi-blast-2.13.0+/bin/blastn', '-db',
+                'nt', '-query', join(working_dir, 'output',
+                'GCMP_top_unknown_seqs.fasta'), '-num_threads', '10',
+                '-max_target_seqs', '5', '-max_hsps', '1', '-outfmt',
+                '6 qseqid sseqid staxids stitle evalue bitscore', '-out',
+                join(working_dir, 'output', 'GCMP_top_unknowns_blast.tsv')]
 subprocess.run(blast_params)

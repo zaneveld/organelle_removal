@@ -15,7 +15,7 @@ for study in studies:
     if 'song' in study:
         metadata = metadata.load(join(working_dir, 'input', 'song', 'sample_metadata.txt'))
     else:
-        metadata = Metadata.load(working_dir + '/input/' + study + '/sample_metadata.txt')
+        metadata = Metadata.load(join(working_dir, 'input', study, 'sample_metadata.txt'))
     df = metadata.to_dataframe()
     df = df.drop(df.columns.difference(['#SampleID']), 1)
     ids = Metadata(df)
