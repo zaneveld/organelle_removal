@@ -114,10 +114,9 @@ def main_function():
     """run script"""
 
     working_dir = '/gscratch/zaneveld/sonettd/organelle_removal'
-    studies = ['song', 'GCMP', 'GSMP', 'human_gut', 'milk', 'peru_ants', 'mocks', 'song', 'song_Amphibia', 'song_Arachnida', 'song_Aves', 'song_Hyperoartia', 'song_Insecta', 'song_Leptocardii', 'song_Mammalia', 'song_Reptilia', 'song_Sagittoidea']
+    studies = ['GCMP', 'GSMP', 'peru_ants', 'song'] #'human_gut', 'milk', 'peru_ants', 'mocks', 'song']
     denoisers = ['dada2', 'deblur']
-    filters = ['filtered', 'unfiltered']
-    classifiers = ['nb', 'vsearch']
+    classifiers = ['vsearch', 'nb']
     references = ['silva', 'silva_extended', 'gg', 'gg_extended']
 
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -126,39 +125,35 @@ def main_function():
             study_results = pd.DataFrame().rename_axis('#SampleID')
             for denoiser in denoisers:
                 denoiser_results = pd.DataFrame().rename_axis('#SampleID')
-                for filtered in filters:
-                    filter_results = pd.DataFrame().rename_axis('#SampleID')
-                    for classifier in classifiers:
-                        classifier_results = pd.DataFrame().rename_axis('#SampleID')
-                        for reference in references:
-                            fp = working_dir + '/output/' + study + '_' + denoiser + '_' + filtered + '_' + reference + '_' + classifier + '_tbp.qzv'
-                            df = load_tbp(fp, temp_dir, 1)
-                            unassigned_results = get_proportions_and_counts(df, 'Unassigned', 'unassigned')
-                            #there are several differences between silva and greengenes - taxonomic level of chloroplasts (4 vs 3) and specific lineages of both chloroplasts and mitochondria
-                            if 'silva' in reference:
-                                df = load_tbp(fp, temp_dir, 4)
-                                cp_name = 'd__Bacteria;p__Cyanobacteria;c__Cyanobacteriia;o__Chloroplast'
-                                mc_name = 'd__Bacteria;p__Proteobacteria;c__Alphaproteobacteria;o__Rickettsiales;f__Mitochondria'
-                            else:
-                                df = load_tbp(fp, temp_dir, 3)
-                                cp_name = 'k__Bacteria;p__Cyanobacteria;c__Chloroplast'
-                                mc_name = 'k__Bacteria;p__Proteobacteria;c__Alphaproteobacteria;o__Rickettsiales;f__mitochondria'
-                            chloroplast_results = get_proportions_and_counts(df, cp_name, 'chloroplasts')
-                            df = load_tbp(fp, temp_dir, 5)
-                            mitochondria_results = get_proportions_and_counts(df, mc_name, 'mitochondria')
-                            reference_results = unassigned_results.merge(chloroplast_results, left_index = True, right_index = True, validate = '1:1')
-                            reference_results = reference_results.merge(mitochondria_results, left_index = True, right_index = True, validate = '1:1')
-                            reference_results['reference taxonomy'] = reference
-                            classifier_results = classifier_results.append(reference_results)
-                        classifier_results['classification method'] = classifier
-                        filter_results = filter_results.append(classifier_results)
-                    filter_results['positive filter'] = filtered
-                    denoiser_results = denoiser_results.append(filter_results)
+                for classifier in classifiers:
+                    classifier_results = pd.DataFrame().rename_axis('#SampleID')
+                    for reference in references:
+                        fp = working_dir + '/output/' + study + '_' + denoiser + '_' + reference + '_' + classifier + '_tbp.qzv'
+                        df = load_tbp(fp, temp_dir, 1)
+                        unassigned_results = get_proportions_and_counts(df, 'Unassigned', 'unassigned')
+                        #there are several differences between silva and greengenes - taxonomic level of chloroplasts (4 vs 3) and specific lineages of both chloroplasts and mitochondria
+                        if 'silva' in reference:
+                            df = load_tbp(fp, temp_dir, 4)
+                            cp_name = 'd__Bacteria;p__Cyanobacteria;c__Cyanobacteriia;o__Chloroplast'
+                            mc_name = 'd__Bacteria;p__Proteobacteria;c__Alphaproteobacteria;o__Rickettsiales;f__Mitochondria'
+                        else:
+                            df = load_tbp(fp, temp_dir, 3)
+                            cp_name = 'k__Bacteria;p__Cyanobacteria;c__Chloroplast'
+                            mc_name = 'k__Bacteria;p__Proteobacteria;c__Alphaproteobacteria;o__Rickettsiales;f__mitochondria'
+                        chloroplast_results = get_proportions_and_counts(df, cp_name, 'chloroplasts')
+                        df = load_tbp(fp, temp_dir, 5)
+                        mitochondria_results = get_proportions_and_counts(df, mc_name, 'mitochondria')
+                        reference_results = unassigned_results.merge(chloroplast_results, left_index = True, right_index = True, validate = '1:1')
+                        reference_results = reference_results.merge(mitochondria_results, left_index = True, right_index = True, validate = '1:1')
+                        reference_results['reference taxonomy'] = reference
+                        classifier_results = classifier_results.append(reference_results)
+                    classifier_results['classification method'] = classifier
+                    denoiser_results = denoiser_results.append(classifier_results)
                 denoiser_results['denoise method'] = denoiser
                 study_results = study_results.append(denoiser_results)
             study_results['study'] = study
             results = results.append(study_results)
-        results.to_csv(working_dir + '/output/proportions.csv')
+        results.to_csv(working_dir + '/output/temp_proportions.csv')
 
 
 

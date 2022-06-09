@@ -15,7 +15,7 @@ from qiime2.plugins.feature_table.methods import filter_features, filter_seqs, m
 from qiime2.plugins.quality_filter.methods import q_score
 
 working_dir = '/gscratch/zaneveld/sonettd/organelle_removal'
-lanes = {'milk':6}#'GCMP':2, 'GSMP':2, 'human_gut':14, 'milk':6, 'peru_ants':1, 'mocks':10, 'song':13}
+lanes = {'human_gut':14}#'GCMP':2, 'GSMP':2, 'human_gut':14, 'milk':6, 'peru_ants':1, 'mocks':10, 'song':13}
 smrna_ref_fasta = join(working_dir, 'taxonomy_references', 'gg_88_otus.fasta')
 smrna_ref = join(working_dir, 'taxonomy_references', 'sortmerna', 'gg_88_otus')
 smrna_ref_param = smrna_ref_fasta + ',' + smrna_ref
@@ -28,38 +28,32 @@ for study, lane_count in lanes.items():
     deblur_unfiltered_tables = []
     deblur_unfiltered_seqs = []
     for lane in range(1, 1 + lane_count):
-#        demuxed_seqs = Artifact.load(join(working_dir, 'input', study, study + '_' + str(lane) + '_demuxed_seqs.qza'))
-        d2_table = Artifact.load(join(working_dir, 'input', study, study + '_' + str(lane) + '_dada2_unfiltered_table.qza'))
-        d2_rep_seqs = Artifact.load(join(working_dir, 'input', study, study + '_' + str(lane) + '_dada2_unfiltered_seqs.qza'))
-#        , d2_stats, = denoise_single(demuxed_seqs, 100, n_threads = 30)
+        demuxed_seqs = Artifact.load(join(working_dir, 'input', study, study + '_' + str(lane) + '_demuxed_seqs.qza'))
+        d2_table, d2_rep_seqs, d2_stats, = denoise_single(demuxed_seqs, 100, n_threads = 30)
         d2_tables.append(d2_table)
         d2_seqs.append(d2_rep_seqs)
-#        d2_table.save(join(working_dir, 'input', study, study + '_' + str(lane) + '_dada2_unfiltered_table.qza'))
-#        d2_rep_seqs.save(join(working_dir, 'input', study, study + '_' + str(lane) + '_dada2_unfiltered_seqs.qza'))
-#        d2_stats.save(join(working_dir, 'input', study, study + '_' + str(lane) + '_dada2_unfiltered_stats.qza'))
+        d2_table.save(join(working_dir, 'input', study, study + '_' + str(lane) + '_dada2_unfiltered_table.qza'))
+        d2_rep_seqs.save(join(working_dir, 'input', study, study + '_' + str(lane) + '_dada2_unfiltered_seqs.qza'))
+        d2_stats.save(join(working_dir, 'input', study, study + '_' + str(lane) + '_dada2_unfiltered_stats.qza'))
 
-#        qual_filtered_seqs, qual_filtered_stats, = q_score(demuxed_seqs)
-#        qual_filtered_stats.save(join(working_dir, 'input', study, study + '_' + str(lane) + '_qual_filtered_stats.qza'))
+        qual_filtered_seqs, qual_filtered_stats, = q_score(demuxed_seqs)
+        qual_filtered_stats.save(join(working_dir, 'input', study, study + '_' + str(lane) + '_qual_filtered_stats.qza'))
 
-        deblur_table = Artifact.load(join(working_dir, 'input', study, study + '_' + str(lane) + '_deblur_filtered_table.qza'))
-        deblur_rep_seqs = Artifact.load(join(working_dir, 'input', study, study + '_' + str(lane) + '_deblur_filtered_seqs.qza'))
-#        , deblur_stats, = denoise_16S(qual_filtered_seqs, 100, sample_stats = True, jobs_to_start = 30)
+        deblur_table, deblur_rep_seqs, deblur_stats, = denoise_16S(qual_filtered_seqs, 100, sample_stats = True, jobs_to_start = 30)
         deblur_tables.append(deblur_table)
         deblur_seqs.append(deblur_rep_seqs)
-#        deblur_table.save(join(working_dir, 'input', study, study + '_' + str(lane) + '_deblur_filtered_table.qza'))
-#        deblur_rep_seqs.save(join(working_dir, 'input', study, study + '_' + str(lane) + '_deblur_filtered_seqs.qza'))
-#        deblur_stats.save(join(working_dir, 'input', study, study + '_' + str(lane) + '_deblur_filtered_stats.qza'))
+        deblur_table.save(join(working_dir, 'input', study, study + '_' + str(lane) + '_deblur_filtered_table.qza'))
+        deblur_rep_seqs.save(join(working_dir, 'input', study, study + '_' + str(lane) + '_deblur_filtered_seqs.qza'))
+        deblur_stats.save(join(working_dir, 'input', study, study + '_' + str(lane) + '_deblur_filtered_stats.qza'))
 
         #deblur with a positive filter of the original sequences, effectively eliminating the filter
-#        fasta = Artifact.load(join(working_dir, 'input', study, study + '_' + str(lane) + '_fasta_seqs.qza'))
-        deblur_unfiltered_table = Artifact.load(join(working_dir, 'input', study, study + '_' + str(lane) + '_deblur_unfiltered_table.qza'))
-        deblur_unfiltered_rep_seqs = Artifact.load(join(working_dir, 'input', study, study + '_' + str(lane) + '_deblur_unfiltered_seqs.qza'))
-#        , deblur_unfiltered_stats, = denoise_other(qual_filtered_seqs, fasta, 100, jobs_to_start = 30)
+        fasta = Artifact.load(join(working_dir, 'input', study, study + '_' + str(lane) + '_fasta_seqs.qza'))
+        deblur_unfiltered_table, deblur_unfiltered_rep_seqs, deblur_unfiltered_stats, = denoise_other(qual_filtered_seqs, fasta, 100, jobs_to_start = 30)
         deblur_unfiltered_tables.append(deblur_unfiltered_table)
         deblur_unfiltered_seqs.append(deblur_unfiltered_rep_seqs)
-#        deblur_unfiltered_table.save(join(working_dir, 'input', study, study + '_' + str(lane) + '_deblur_unfiltered_table.qza'))
-#        deblur_unfiltered_rep_seqs.save(join(working_dir, 'input', study, study + '_' + str(lane) + '_deblur_unfiltered_seqs.qza'))
-#        deblur_unfiltered_stats.save(join(working_dir, 'input', study, study + '_' + str(lane) + '_deblur_unfiltered_stats.qza'))
+        deblur_unfiltered_table.save(join(working_dir, 'input', study, study + '_' + str(lane) + '_deblur_unfiltered_table.qza'))
+        deblur_unfiltered_rep_seqs.save(join(working_dir, 'input', study, study + '_' + str(lane) + '_deblur_unfiltered_seqs.qza'))
+        deblur_unfiltered_stats.save(join(working_dir, 'input', study, study + '_' + str(lane) + '_deblur_unfiltered_stats.qza'))
 
     d2_merged_table, = merge(d2_tables, 'sum')
     d2_merged_table.save(join(working_dir, 'input', study + '_dada2_unfiltered_merged_ft.qza'))

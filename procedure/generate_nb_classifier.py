@@ -120,4 +120,4 @@ for reference in ['gg', 'gg_extended', 'silva', 'silva_extended']:
         ref_reads = Artifact.load(join(refs_dir, reference + '_sequences.qza'))
         ref_taxonomy = Artifact.load(join(refs_dir, reference + '_taxonomy.qza'))
         classifier, = fit_classifier_naive_bayes(ref_reads, ref_taxonomy)
-        classifier.save(join(working_dir, 'output', reference + '_nb_classifier.qza')
+        classifier.save(join(working_dir, 'output', reference + '_nb_classifier.qza'))
