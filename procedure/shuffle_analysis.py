@@ -1,8 +1,5 @@
-from os.path import join
+from os.path import join, exists
 from random import shuffle
-import tempfile
-
-import os
 import tempfile
 
 import pandas as pd
@@ -11,12 +8,8 @@ from qiime2 import Artifact, Visualization
 from qiime2.metadata import Metadata
 from qiime2.plugins.feature_classifier.methods import classify_consensus_vsearch
 from qiime2.plugins.feature_classifier.methods import classify_sklearn
-from qiime2.plugins.quality_control.visualizers import evaluate_taxonomy
 from qiime2.plugins.taxa.visualizers import barplot
 
-#from scipy import stats
-#import seaborn as sns
-#import matplotlib.pyplot as plt
 
 def get_proportions_and_counts(dataframe, taxon, results_label = None):
     """calculate the per-sample proportion of a given taxon from a qiime2 taxa barplot (in dataframe form)
@@ -54,8 +47,8 @@ def get_proportions_and_counts(dataframe, taxon, results_label = None):
 
     return results
 
-def load_tbp(fp, directory, level):
-    """load a qiime2 taxa barplot qzv, export qzv into a directory, and load the specified CSV into a pandas dataframe. 
+def load_tbp(fp, level):
+    """load a qiime2 taxa barplot qzv, then load the specified CSV into a pandas dataframe. 
     Parameters
     ----------
     fp : path to qzv
@@ -67,35 +60,31 @@ def load_tbp(fp, directory, level):
     qzv_df : pandas dataframe of specified taxonomic level"""
 
     qzv = Visualization.load(fp)
-    qzv.export_data(directory)
-    csv_name = 'level-' + str(level) + '.csv'
-    #if the classifier does not classify *any* sequences at the specified taxonomic levl, it will not generate the csv for
-    #that level. if the csv exists with the proper sample names but the specific column of interest is absent, it will set
-    #that column to zero, so all that is needed for a hackish workaround is to create an empty csv and fill in the sample
-    #names. csv-1 should always exist, as it includes the "unassigned" label
-    if not os.path.exists(os.path.join(directory, csv_name)):
-        print("no", csv_name)
-        print("creating blank")
-        with open(os.path.join(directory, 'level-1.csv')) as infile:
-            with open(os.path.join(directory, csv_name), 'w') as outfile:
-                for line in infile:
-                    outfile.write(line.split(',')[0] + '\n')
-    
-    qzv_df = pd.read_csv(os.path.join(directory, csv_name), index_col = 'index')
-    
+    with tempfile.TemporaryDirectory() as temp_dir:
+        qzv.export_data(temp_dir)
+        csv_name = 'level-' + str(level) + '.csv'
+        fp = join(temp_dir, csv_name)
+        if exists(fp):
+            qzv_df = pd.read_csv(fp, index_col = 'index')
+        else:
+            #qiime does not create a csv for that level if nothing was annotated at that point.
+            #get around that by grabbing the index from the level 1 csv and returning nothing else
+            qzv_df = pd.read_csv(join(temp_dir, 'level-1.csv'), index_col = 'index')
+            qzv_df = qzv_df[[]]
+        
     return qzv_df
 
 working_dir = '/gscratch/zaneveld/sonettd/organelle_removal'
-studies = ['GCMP_', 'mocks_']
-references = ['silva_', 'silva_extended_']
-classifiers = ['nb', 'vsearch']
+studies = ['GCMP', 'GSMP', 'human_gut', 'peru_ants', 'milk', 'song', 'mocks']
+references = ['silva', 'silva_extended']
+classifiers = ['vsearch', 'nb']
+denoisers = ['dada2']
+filters = ['unfiltered']
+
+#shuffle
 
 for study in studies:
-    rep_seqs = Artifact.load(join(working_dir, 'input', study + 'dada2_unfiltered_merged_seqs.qza'))
-    metadata = Metadata.load(join(working_dir, 'input', study.rstrip('_'), 'sample_metadata.txt'))
-    df = metadata.to_dataframe()
-    df = df.drop(df.columns.difference(['#SampleID']), 1)
-    ids = Metadata(df)
+    rep_seqs = Artifact.load(join(working_dir, 'input', f'{study}_dada2_unfiltered_merged_seqs.qza'))
     with tempfile.TemporaryDirectory() as temp_dir:
         rep_seqs.export_data(temp_dir)
         with open(join(temp_dir, 'dna-sequences.fasta')) as original_fasta:
@@ -109,58 +98,64 @@ for study in studies:
                         shuffled_line = ''.join(bases)
                         shuffled_fasta.write(shuffled_line + '\n')
         shuffled_seqs = Artifact.import_data('FeatureData[Sequence]', join(temp_dir, 'shuffled.fasta'))
-    #shuffled_seqs.save(join(working_dir, 'input', study + 'shuffled_dada2_unfiltered_merged_seqs.qza'))
-    ft = Artifact.load(join(working_dir, 'input', study + 'dada2_unfiltered_merged_ft.qza'))
+    shuffled_seqs.save(join(working_dir, 'input', f'{study}_shuffled_dada2_unfiltered_merged_seqs.qza'))
+
+#classify
+
+for study in studies:
+    seqs = Artifact.load(join(working_dir, 'input', f'{study}_shuffled_dada2_unfiltered_merged_seqs.qza'))
     for reference in references:
-        ref_seqs = Artifact.load(join(working_dir, 'taxonomy_references', reference + 'sequences.qza'))
-        ref_tax = Artifact.load(join(working_dir, 'taxonomy_references', reference + 'taxonomy.qza'))
-        classification_taxonomy, = classify_consensus_vsearch(shuffled_seqs, ref_seqs, ref_tax, threads = 30)
-        classification_taxonomy.save(join(working_dir, 'output', study + 'shuffled_dada2_unfiltered_' + reference + 'vsearch_classification_taxonomy.qza'))
-        classifier = Artifact.load(join(working_dir, 'taxonomy_references', reference + 'nb_classifier.qza'))
-        nb_classification_taxonomy, = classify_sklearn(shuffled_seqs, classifier, n_jobs= 30)
-        nb_classification_taxonomy.save(join(working_dir, 'output', study + 'shuffled_dada2_unfiltered_' + reference + 'nb_classification_taxonomy.qza'))
-        tbp, = barplot(ft, classification_taxonomy, ids)
-        tbp.save(join(working_dir, 'output', study + 'shuffled_dada2_unfiltered_' + reference + 'vsearch_tbp.qzv'))
-        nb_tbp, = barplot(ft, nb_classification_taxonomy, ids)
-        nb_tbp.save(join(working_dir, 'output', study + 'shuffled_dada2_unfiltered_' + reference +'nb_tbp.qzv'))
-    #compare annotations
+        ref_seqs = Artifact.load(join(working_dir, 'taxonomy_references', f'{reference}_sequences.qza'))
+        ref_tax = Artifact.load(join(working_dir, 'taxonomy_references', f'{reference}_taxonomy.qza'))
+        classification_taxonomy, = classify_consensus_vsearch(seqs, ref_seqs, ref_tax, threads = 1)
+        classification_taxonomy.save(join(working_dir, 'output', f'{study}_shuffled_dada2_unfiltered_{reference}_vsearch_classification_taxonomy.qza'))
+        classifier = Artifact.load(join(working_dir, 'taxonomy_references', f'{reference}_nb_classifier.qza'))
+        nb_classification_taxonomy, = classify_sklearn(seqs, classifier, n_jobs = 1)
+        nb_classification_taxonomy.save(join(working_dir, 'output', f'{study}_shuffled_dada2_unfiltered_{reference}_nb_classification_taxonomy.qza'))
+
+#barplots
+
+for study in studies:
+    metadata = Metadata.load(join(working_dir, 'input', f'{study}_sample_metadata.txt'))
+    df = metadata.to_dataframe()
+    df = df.drop(df.columns.difference(['#SampleID']), 1)
+    ids = Metadata(df)
+    ft = Artifact.load(join(working_dir, 'input', f'{study}_dada2_unfiltered_merged_ft.qza'))
     for classifier in classifiers:
-        #"Canonical" annotations are the base taxonomy:
-        expected = Artifact.load(join(working_dir, 'output', study + 'shuffled_dada2_unfiltered_silva_' + classifier + '_classification_taxonomy.qza'))
-        observed = Artifact.load(join(working_dir, 'output', study + 'shuffled_dada2_unfiltered_silva_extended_' + classifier + '_classification_taxonomy.qza'))
-        tax_compared, = evaluate_taxonomy(expected, observed, 7)
-        tax_compared.save(join(working_dir, 'output', study + 'shuffled_dada2_unfiltered_silva_' + classifier + '_taxonomy_evaluation.qzv'))
+        for reference in references:
+            taxonomy = Artifact.load(join(working_dir, 'output', f'{study}_shuffled_dada2_unfiltered_{reference}_{classifier}_classification_taxonomy.qza'))
+            tbp, = barplot(ft, taxonomy, ids)
+            tbp.save(join(working_dir, 'output', f'{study}_shuffled_dada2_unfiltered_{reference}_{classifier}_tbp.qzv'))
+
+#csvs
+
+shuffled_studies = [x + '_shuffled' for x in studies]
 
 results = pd.DataFrame().rename_axis('#SampleID')
-for study in ['GCMP', 'mocks']:
+for study in shuffled_studies:
     study_results = pd.DataFrame().rename_axis('#SampleID')
-    for classifier in classifiers:
-        classifier_results = pd.DataFrame().rename_axis('#SampleID')
-        for reference in references:
-            with tempfile.TemporaryDirectory() as temp_dir:
-                fp = join(working_dir, 'output', study + '_shuffled_dada2_unfiltered_' + reference + classifier + '_tbp.qzv')
-                df = load_tbp(fp, temp_dir, 1)
-#                print(df)
+    for denoiser in denoisers:
+        denoiser_results = pd.DataFrame().rename_axis('#SampleID')
+        for classifier in classifiers:
+            classifier_results = pd.DataFrame().rename_axis('#SampleID')
+            for reference in references:
+                fp = join(working_dir, 'output', f'{study}_dada2_unfiltered_{reference}_{classifier}_tbp.qzv')
+                df = load_tbp(fp, 1)
                 unassigned_results = get_proportions_and_counts(df, 'Unassigned', 'unassigned')
-                if 'silva' in reference:
-                    df = load_tbp(fp, temp_dir, 4)
-                    cp_name = 'd__Bacteria;p__Cyanobacteria;c__Cyanobacteriia;o__Chloroplast'
-                    mc_name = 'd__Bacteria;p__Proteobacteria;c__Alphaproteobacteria;o__Rickettsiales;f__Mitochondria'
-                else:
-                    df = load_tbp(fp, temp_dir, 3)
-                    cp_name = 'k__Bacteria;p__Cyanobacteria;c__Chloroplast'
-                    mc_name = 'k__Bacteria;p__Proteobacteria;c__Alphaproteobacteria;o__Rickettsiales;f__mitochondria'
+                df = load_tbp(fp, 4)
+                cp_name = 'd__Bacteria;p__Cyanobacteria;c__Cyanobacteriia;o__Chloroplast'
+                mc_name = 'd__Bacteria;p__Proteobacteria;c__Alphaproteobacteria;o__Rickettsiales;f__Mitochondria'
                 chloroplast_results = get_proportions_and_counts(df, cp_name, 'chloroplasts')
-                df = load_tbp(fp, temp_dir, 5)
-#                print(df['d__Bacteria;p__Proteobacteria;c__Alphaproteobacteria;o__Rickettsiales;f__Mitochondria'])
+                df = load_tbp(fp, 5)
                 mitochondria_results = get_proportions_and_counts(df, mc_name, 'mitochondria')
                 reference_results = unassigned_results.merge(chloroplast_results, left_index = True, right_index = True, validate = '1:1')
                 reference_results = reference_results.merge(mitochondria_results, left_index = True, right_index = True, validate = '1:1')
                 reference_results['reference taxonomy'] = reference
                 classifier_results = classifier_results.append(reference_results)
-#                print(reference_results)
-        classifier_results['classification method'] = classifier
-        study_results = study_results.append(classifier_results)
+            classifier_results['classification method'] = classifier
+            denoiser_results = denoiser_results.append(classifier_results)
+        denoiser_results['denoise method'] = denoiser
+        study_results = study_results.append(denoiser_results)
     study_results['study'] = study
     results = results.append(study_results)
 results.to_csv(join(working_dir, 'output', 'shuffled_proportions.csv'))
