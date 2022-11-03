@@ -1,4 +1,3 @@
-from glob import glob
 from os.path import join
 import re
 import tempfile
@@ -51,13 +50,17 @@ filters = ['filtered', 'unfiltered']
 classifiers = ['vsearch', 'nb']
 references = ['silva', 'silva_extended']#, 'gg', 'gg_extended']
 columns_of_interest = {'GCMP':['tissue_compartment', 'family'], 'GSMP':['host_scientific_name', 'empo_3'], 'human_gut':['life_stage', 'env_biome'], 'milk':['season', 'silo_lot_id'], 'peru_ants':['genus', 'habitat'], 'song':['class', 'country']}
+#these are incorrectly or un categorized data that are excluded from this analysis
 filter_criteria = ['D', 'Not applicable', 'Not collected', 'not provided', 'TS', 'W', '', 'incertae sedis', 'not applicable', 'sponges', 'NA', 'Missing', 'unknown']
 alpha_diversity_metrics = ['faiths_pd', 'obs_features', 'shannon_div', 'evenness']
 beta_diversity_metrics = ['unweighted_unifrac', 'weighted_unifrac', 'jaccard', 'bray_curtis']
 div_results = []
 
 for study in studies:
-    md_path = join(working_dir, 'input', study, 'sample_metadata.txt')
+    if study == 'song':
+        md_path = join(working_dir, 'input', study, 'song_sample_metadata.txt')
+    else:
+        md_path = join(working_dir, 'input', study, 'sample_metadata.txt')
     md = Metadata.load(md_path)
     for denoiser in denoisers:
         phylogeny_path = join(working_dir, 'output', f'{study}_{denoiser}_unfiltered_tree.qza')
@@ -82,7 +85,7 @@ for study in studies:
                 filtered_extended_table, = filter_samples(extended_rarefied_table, metadata = base_ids)
                 for column in columns_of_interest[study]:
                     #set up the SQLite WHERE clause to filter out samples with bad data
-                    #this is a complicated line due to the various escapes when passing through python and SQLite
+                    #this is a complicated line due to the various escapes when passing through python and SQLite and I'm scared to clean it up
                     where = "'" + column + "'" + "='" + ("' OR " + "'" + column + "'" + "='").join(filter_criteria) + "'"
 
                     filtered_base_table, = filter_samples(filtered_base_table, metadata = md, where = where, exclude_ids = True)
@@ -116,10 +119,10 @@ for study in studies:
                     with tempfile.TemporaryDirectory() as temp_dir:
                         for column in columns_of_interest[study]:
                             md_column = md.get_column(column)
-                            beta_group_significance(unweighted_unifrac, md_column)[0].save(f'{output_path}{column}_unweighted_unifrac.qzv')
-                            beta_group_significance(weighted_unifrac, md_column)[0].save(f'{output_path}{column}_weighted_unifrac.qzv')
-                            beta_group_significance(jaccard, md_column)[0].save(f'{output_path}{column}_jaccard.qzv')
-                            beta_group_significance(bray_curtis, md_column)[0].save(f'{output_path}{column}_bray_curtis.qzv')
+                            beta_group_significance(unweighted_unifrac, md_column, permutations = 1000000)[0].save(f'{output_path}{column}_unweighted_unifrac.qzv')
+                            beta_group_significance(weighted_unifrac, md_column, permutations = 1000000)[0].save(f'{output_path}{column}_weighted_unifrac.qzv')
+                            beta_group_significance(jaccard, md_column, permutations = 1000000)[0].save(f'{output_path}{column}_jaccard.qzv')
+                            beta_group_significance(bray_curtis, md_column, permutations = 1000000)[0].save(f'{output_path}{column}_bray_curtis.qzv')
                             
                             for a_metric in alpha_diversity_metrics:
                                 qzv = Visualization.load(join(working_dir, 'output', f'{output_path}{a_metric}.qzv'))
@@ -132,5 +135,5 @@ for study in studies:
                                 qzv.export_data(temp_dir)
                                 b_div_results = parse_bdiv_results_html_file(join(temp_dir, 'index.html'))
                                 div_results.append([study, denoiser, filtered, reference, classifier, 'beta', (b_metric + '_' + b_div_results[0]), column, b_div_results[4], b_div_results[5]])
-    pd.DataFrame(div_results, columns = ['study', 'denoiser', 'positive filter' 'reference', 'classifier', 'diversity_type', 'diversity_metric', 'comparison_column', 'test_statistic', 'p']).to_csv(join(working_dir, 'output', f'{study}_diversity_stats_tests.csv'))
-pd.DataFrame(div_results, columns = ['study', 'denoiser', 'positive filter' 'reference', 'classifier', 'diversity_type', 'diversity_metric', 'comparison_column', 'test_statistic', 'p']).to_csv(join(working_dir, 'output', 'diversity_stats_tests.csv'))
+    pd.DataFrame(div_results, columns = ['study', 'denoiser', 'positive filter', 'reference', 'classifier', 'diversity_type', 'diversity_metric', 'comparison_column', 'test_statistic', 'p']).to_csv(join(working_dir, 'output', f'{study}_diversity_stats_tests.csv'))
+pd.DataFrame(div_results, columns = ['study', 'denoiser', 'positive filter', 'reference', 'classifier', 'diversity_type', 'diversity_metric', 'comparison_column', 'test_statistic', 'p']).to_csv(join(working_dir, 'output', 'diversity_stats_tests.csv'))

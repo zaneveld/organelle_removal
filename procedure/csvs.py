@@ -41,57 +41,9 @@ def get_proportions_and_counts(dataframe, taxon, results_label = None):
 
     return results
 
-# def find_proportion(dataframe, taxon_label, proportion_label = 'proportion_' + taxon_label):
-#     """calculate the per-sample proportion of a given taxon from a qiime2 taxa barplot (converted to pandas dataframe)
-    
-#     Parameters
-#     -----------
-#     dataframe : pandas DataFrame built from a qiime2 taxa barplot visualization
-#     taxon_label : str, name of column of interest
-#     proportion_label : str, name of results column (defaults to ('proportion_' + taxon_label))
 
-#     Returns
-#     -----------
-#     proportions : pandas DataFrame with the original index and a single column of calculated proportions"""
-    
-#     #sum the counts of each sample
-#     dataframe['total'] = dataframe.sum(1)
-#     #divide the column of interest by the total to find the proportion
-#     if taxon_label in dataframe.columns:
-#         dataframe[proportion_label] = dataframe[taxon_label] / dataframe['total']
-#     else:
-#         dataframe[proportion_label] = 0
-#     proportions = dataframe.drop(dataframe.columns.difference([proportion_label]), 1, inplace=True)
-
-
-#     return proportions
-
-# def find_absolute(dataframe, taxon_label, count_label = 'total_' + taxon_label):
-#     """calculate the per-sample count of a given taxon from a qiime2 taxa barplot (converted to pandas dataframe)
-    
-#     Parameters
-#     -----------
-#     dataframe : pandas DataFrame built from a qiime2 taxa barplot visualization
-#     taxon_label : str, name of column of interest
-#     count_label : str, name of results column (defaults to ('total_' + taxon_label))
-
-#     Returns
-#     -----------
-#     counts : pandas DataFrame with the original index and a single column of counts of the taxon"""
-    
-#     if taxon_label in dataframe.columns:
-#         dataframe[count_label] = dataframe[taxon_label]
-#     else:
-#         datafreme[count_label] = 0
-#     counts = dataframe.drop(dataframe.columns.difference([proportion_label]), 1, inplace=True)
-
-
-#     return counts
-
-
-
-def load_tbp(fp, directory, level):
-    """load a qiime2 taxa barplot qzv, export qzv into a directory, and load the specified CSV into a pandas dataframe. 
+def load_tbp(fp, level):
+    """load a qiime2 taxa barplot qzv, then load the specified CSV into a pandas dataframe. 
     Parameters
     ----------
     fp : path to qzv
@@ -103,11 +55,18 @@ def load_tbp(fp, directory, level):
     qzv_df : pandas dataframe of specified taxonomic level"""
 
     qzv = Visualization.load(fp)
-    qzv.export_data(directory)
-    csv_name = 'level-' + str(level) + '.csv'
-    qzv_df = pd.read_csv(os.path.join(directory, csv_name), index_col = 'index')
-
-
+    with tempfile.TemporaryDirectory() as temp_dir:
+        qzv.export_data(temp_dir)
+        csv_name = 'level-' + str(level) + '.csv'
+        fp = join(temp_dir, csv_name)
+        if exists(fp):
+            qzv_df = pd.read_csv(fp, index_col = 'index')
+        else:
+            #qiime does not create a csv for that level if nothing was annotated at that point.
+            #get around that by grabbing the index from the level 1 csv and returning nothing else
+            qzv_df = pd.read_csv(join(temp_dir, 'level-1.csv'), index_col = 'index')
+            qzv_df = qzv_df[[]]
+        
     return qzv_df
 
 def main_function():
@@ -120,45 +79,45 @@ def main_function():
     classifiers = ['nb', 'vsearch']
     references = ['silva', 'silva_extended', 'gg', 'gg_extended']
 
-    with tempfile.TemporaryDirectory() as temp_dir:
-        results = pd.DataFrame().rename_axis('#SampleID')
-        for study in studies:
-            study_results = pd.DataFrame().rename_axis('#SampleID')
-            for denoiser in denoisers:
-                denoiser_results = pd.DataFrame().rename_axis('#SampleID')
-                for filtered in filters:
-                    filter_results = pd.DataFrame().rename_axis('#SampleID')
-                    for classifier in classifiers:
-                        classifier_results = pd.DataFrame().rename_axis('#SampleID')
-                        for reference in references:
-                            fp = working_dir + '/output/' + study + '_' + denoiser + '_' + filtered + '_' + reference + '_' + classifier + '_tbp.qzv'
-                            df = load_tbp(fp, temp_dir, 1)
-                            unassigned_results = get_proportions_and_counts(df, 'Unassigned', 'unassigned')
-                            #there are several differences between silva and greengenes - taxonomic level of chloroplasts (4 vs 3) and specific lineages of both chloroplasts and mitochondria
-                            if 'silva' in reference:
-                                df = load_tbp(fp, temp_dir, 4)
-                                cp_name = 'd__Bacteria;p__Cyanobacteria;c__Cyanobacteriia;o__Chloroplast'
-                                mc_name = 'd__Bacteria;p__Proteobacteria;c__Alphaproteobacteria;o__Rickettsiales;f__Mitochondria'
-                            else:
-                                df = load_tbp(fp, temp_dir, 3)
-                                cp_name = 'k__Bacteria;p__Cyanobacteria;c__Chloroplast'
-                                mc_name = 'k__Bacteria;p__Proteobacteria;c__Alphaproteobacteria;o__Rickettsiales;f__mitochondria'
-                            chloroplast_results = get_proportions_and_counts(df, cp_name, 'chloroplasts')
-                            df = load_tbp(fp, temp_dir, 5)
-                            mitochondria_results = get_proportions_and_counts(df, mc_name, 'mitochondria')
-                            reference_results = unassigned_results.merge(chloroplast_results, left_index = True, right_index = True, validate = '1:1')
-                            reference_results = reference_results.merge(mitochondria_results, left_index = True, right_index = True, validate = '1:1')
-                            reference_results['reference taxonomy'] = reference
-                            classifier_results = classifier_results.append(reference_results)
-                        classifier_results['classification method'] = classifier
-                        filter_results = filter_results.append(classifier_results)
-                    filter_results['positive filter'] = filtered
-                    denoiser_results = denoiser_results.append(filter_results)
-                denoiser_results['denoise method'] = denoiser
-                study_results = study_results.append(denoiser_results)
-            study_results['study'] = study
-            results = results.append(study_results)
-        results.to_csv(working_dir + '/output/proportions.csv')
+    
+    results = pd.DataFrame().rename_axis('#SampleID')
+    for study in studies:
+        study_results = pd.DataFrame().rename_axis('#SampleID')
+        for denoiser in denoisers:
+            denoiser_results = pd.DataFrame().rename_axis('#SampleID')
+            for filtered in filters:
+                filter_results = pd.DataFrame().rename_axis('#SampleID')
+                for classifier in classifiers:
+                    classifier_results = pd.DataFrame().rename_axis('#SampleID')
+                    for reference in references:
+                        fp = working_dir + '/output/' + study + '_' + denoiser + '_' + filtered + '_' + reference + '_' + classifier + '_tbp.qzv'
+                        df = load_tbp(fp, 1)
+                        unassigned_results = get_proportions_and_counts(df, 'Unassigned', 'unassigned')
+                        #there are several differences between silva and greengenes - taxonomic level of chloroplasts (4 vs 3) and specific lineages of both chloroplasts and mitochondria
+                        if 'silva' in reference:
+                            df = load_tbp(fp, 4)
+                            cp_name = 'd__Bacteria;p__Cyanobacteria;c__Cyanobacteriia;o__Chloroplast'
+                            mc_name = 'd__Bacteria;p__Proteobacteria;c__Alphaproteobacteria;o__Rickettsiales;f__Mitochondria'
+                        else:
+                            df = load_tbp(fp, 3)
+                            cp_name = 'k__Bacteria;p__Cyanobacteria;c__Chloroplast'
+                            mc_name = 'k__Bacteria;p__Proteobacteria;c__Alphaproteobacteria;o__Rickettsiales;f__mitochondria'
+                        chloroplast_results = get_proportions_and_counts(df, cp_name, 'chloroplasts')
+                        df = load_tbp(fp, 5)
+                        mitochondria_results = get_proportions_and_counts(df, mc_name, 'mitochondria')
+                        reference_results = unassigned_results.merge(chloroplast_results, left_index = True, right_index = True, validate = '1:1')
+                        reference_results = reference_results.merge(mitochondria_results, left_index = True, right_index = True, validate = '1:1')
+                        reference_results['reference taxonomy'] = reference
+                        classifier_results = classifier_results.append(reference_results)
+                    classifier_results['classification method'] = classifier
+                    filter_results = filter_results.append(classifier_results)
+                filter_results['positive filter'] = filtered
+                denoiser_results = denoiser_results.append(filter_results)
+            denoiser_results['denoise method'] = denoiser
+            study_results = study_results.append(denoiser_results)
+        study_results['study'] = study
+        results = results.append(study_results)
+    results.to_csv(working_dir + '/output/proportions.csv')
 
 
 
