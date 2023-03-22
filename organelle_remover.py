@@ -93,25 +93,24 @@ if not args.p_skip_setup:
 
 query_sequences = Artifact.load(args.i_sequences)
 
-# if args.p_classifier == 'nb':
-#     #train the nb classifier if needed
-#     if not isfile('silva_extended_nb_classifier.qza'):
-#         reference_sequences = Artifact.load('silva_extended_sequences.qza')
-#         reference_taxonomy = Artifact.load('silva_extended_taxonomy.qza')
-#         nb_classifier, = fit_classifier_naive_bayes(reference_sequences, reference_taxonomy)
-#         nb_classifier.save('silva_extended_nb_classifier.qza')
-#     #annotate sequences with the nb classifier
-#     nb_classifier = Artifact.load('silva_extended_nb_classifier.qza')
-#     classification_taxonomy, = classify_sklearn(query_sequences, nb_classifier, n_jobs = args.p_threads)
+if args.p_classifier == 'nb':
+    #train the nb classifier if needed
+    if not isfile('silva_extended_nb_classifier.qza'):
+        reference_sequences = Artifact.load('silva_extended_sequences.qza')
+        reference_taxonomy = Artifact.load('silva_extended_taxonomy.qza')
+        nb_classifier, = fit_classifier_naive_bayes(reference_sequences, reference_taxonomy)
+        nb_classifier.save('silva_extended_nb_classifier.qza')
+    #annotate sequences with the nb classifier
+    nb_classifier = Artifact.load('silva_extended_nb_classifier.qza')
+    classification_taxonomy, = classify_sklearn(query_sequences, nb_classifier, n_jobs = args.p_threads)
 
-# else:
-#     #annotate sequences with vsearch
-#     reference_sequences = Artifact.load('silva_extended_sequences.qza')
-#     reference_taxonomy = Artifact.load('silva_extended_taxonomy.qza')
-#     classification_taxonomy, = classify_consensus_vsearch(query_sequences, reference_sequences, reference_taxonomy, threads = args.p_threads)
+else:
+    #annotate sequences with vsearch
+    reference_sequences = Artifact.load('silva_extended_sequences.qza')
+    reference_taxonomy = Artifact.load('silva_extended_taxonomy.qza')
+    classification_taxonomy, = classify_consensus_vsearch(query_sequences, reference_sequences, reference_taxonomy, threads = args.p_threads)
 
-# classification_taxonomy.save('silva_extended_classification_taxonomy.qza')
-classification_taxonomy = Artifact.load('silva_extended_classification_taxonomy.qza')
+classification_taxonomy.save('silva_extended_classification_taxonomy.qza')
 
 #use the classification taxonomy to filter organelles out of the feature table
 feature_table = Artifact.load(args.i_feature_table)
