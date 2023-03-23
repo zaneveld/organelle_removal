@@ -1,4 +1,4 @@
-import os
+from os.path import exists, join
 import pandas as pd
 import tempfile
 
@@ -73,7 +73,7 @@ def main_function():
     """run script"""
 
     working_dir = '/gscratch/zaneveld/sonettd/organelle_removal'
-    studies = ['song', 'GCMP', 'GSMP', 'human_gut', 'milk', 'peru_ants', 'mocks', 'song', 'song_Amphibia', 'song_Arachnida', 'song_Aves', 'song_Hyperoartia', 'song_Insecta', 'song_Leptocardii', 'song_Mammalia', 'song_Reptilia', 'song_Sagittoidea']
+    studies = ['song', 'GCMP', 'GSMP', 'human_gut', 'milk', 'peru_ants', 'mocks', 'song_Amphibia', 'song_Arachnida', 'song_Aves', 'song_Hyperoartia', 'song_Insecta', 'song_Leptocardii', 'song_Mammalia', 'song_Reptilia', 'song_Sagittoidea']
     denoisers = ['dada2', 'deblur']
     filters = ['filtered', 'unfiltered']
     classifiers = ['nb', 'vsearch']

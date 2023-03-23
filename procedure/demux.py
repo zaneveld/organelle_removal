@@ -8,7 +8,7 @@ from qiime2 import Artifact, Metadata
 from qiime2.plugins.demux.methods import emp_single
 
 working_dir = '/gscratch/zaneveld/sonettd/organelle_removal'
-lanes = {'GCMP':2, 'GSMP':2, 'human_gut':14, 'milk':6, 'peru_ants':1, 'song':13}
+lanes = {'song':13}#'GCMP':2, 'GSMP':2, 'human_gut':14, 'milk':6, 'peru_ants':1, 'song':13}
 
 for study, lane_count in lanes.items():
     d2_tables = []
