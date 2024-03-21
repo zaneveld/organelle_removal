@@ -22,6 +22,12 @@ This repository includes pre-built extended taxonomies for SILVA138 and Greengen
 ### QIIME2 Custom Extended Taxonomy Tutorial
 [QIIME 2 Extended Taxonomy Tutorial](./Tutorial/qiime2_API_tutorial/procedure/extended_taxonomy_construction_tutorial.ipynb)
 
+
+## Manuscript Benchmarking Workflow
+
+This repository also includes [code for the benchmarking of this method](./procedure/) for the manuscript, in the `procedure` folder. Because many input 16S rRNA datasets analyzed in the manuscript are large, they are not included here, but the import step includes links to download them from QIITA. Similarly, because most output files are too large for GitHub, these must be regenerated. An output folder that will house them as scripts are run is included for convenience.
+
+
 Reference:
 ```
 The Organelle in the Ointment: cryptic mitochondria account for many unknown sequences in cross-species microbiome comparisons
