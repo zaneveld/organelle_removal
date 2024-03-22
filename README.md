@@ -25,7 +25,7 @@ This repository includes pre-built extended taxonomies for SILVA138 and Greengen
 
 ## Manuscript Benchmarking Workflow
 
-This repository also includes [code for the benchmarking of this method](./procedure/) for the manuscript, in the `procedure` folder. Because many input 16S rRNA datasets analyzed in the manuscript are large, they are not included here, but the import step includes links to download them from QIITA. Similarly, because most output files are too large for GitHub, these must be regenerated. An output folder that will house them as scripts are run is included for convenience.
+This repository also includes [code for the benchmarking of this method](./procedure/_index.txt) for the manuscript, in the `procedure` folder. Because many input 16S rRNA datasets analyzed in the manuscript are large, they are not included here, but the import step includes links to download them from QIITA. Similarly, because most output files are too large for GitHub, these must be regenerated. An output folder that will house them as scripts are run is included for convenience.
 
 
 Reference:
