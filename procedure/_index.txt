@@ -1,36 +1,46 @@
-#index of files for the organelle removal project
+index of files for the organelle removal project to serve as a roadmap for the complete pipeline
+these are a mix of shell and python and include scripts and ipython notebooks
 
-#these are a mix of command line and python and include scripts and ipython notebooks
-#directory locations may be inconsistent across files
-
+1.
 #import files from qiita
 #import.sh
 
+2.
 #import mock community data from mockrobiota
 #import_mocks.py
 
+3.
 #demultiplex data
 #demux.py
 
+4.
 #denoise data, using deblur and dada2 with and without the SortMeRNA filter
 #denoise.py
 
+5.
 #classify sequences using every combination of variables so far
 #classify.py
 
+6.
 #create barplots (counts) of classification results
 #create_barplots.py
 
+7.
 #calculate results
 #csvs.py
 
+8.
 #filter organelles and rarefy feature tables
 #filter_rarefy.py
 
+9.
 #generate tree for phylogenetic diversity metrics
 #sepp.sh
 
+10.
 #calculate diversity metrics for the feature tables
 #diversity.py
 
-#
+11.
+#compare ancombc results from tables filtered by base and extended taxonomies
+#ancombc.py
